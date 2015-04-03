@@ -81,18 +81,16 @@ define([
 		 */
 		"request": function requestRouteChanges(requests) {
 			var me = this;
-			return me.task(function(resolve) {
-				// Track this task.
-				var taskNo = ++currTaskNo;
-				// Emit the requested route hash.
-				return me.emit("request", extend.call({}, me[CACHE], requests))
-				 .then(lastValue)
-				 .then(function(results) {
-						// Reject if this promise is not the current pending task.
+			// Track this task.
+			var taskNo = ++currTaskNo;
+			return me.task(me.emit("request", extend.call({}, me[CACHE], requests))
+				.then(lastValue)
+				.then(function (results) {
+					// Reject if this promise is not the current pending task.
 					if (taskNo == currTaskNo) {
 						// Calculate updates
 						var updates = {};
-						var updated = Object.keys(results).reduce(function(update, key) {
+						var updated = Object.keys(results).reduce(function (update, key) {
 							if (checkChanged.apply(me, [key, results[key]])) {
 								updates[key] = results[key];
 								update = true;
@@ -105,18 +103,17 @@ define([
 						me[CACHE] = results;
 
 						// Emit all cached properties.
-						resolve(me.emit("results", results).then(function() {
+						return me.emit("results", results).then(function () {
 							// Emit only the changed properties.
 							return updated && me.emit("updates", updates).then(lastValue);
-						}).then(function() {
+						}).then(function () {
 							// Change to the new URI.
 							var uri = me.data2uri(results);
 							if (uri)
 								me.publish("route/set", uri, null, true);
-						}).yield(results));
+						}).yield(results)
 					}
-				});
-			});
+				}));
 		},
 
 		/**
